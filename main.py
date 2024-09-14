@@ -10,16 +10,23 @@ alex = Player('Алекс')
 table = Table(ivan, blind=10)
 table.join(bob)
 table.join(jon)
-# table.join(maks)
-# table.join(kris)
-# table.join(alex)
-for i in range(10):
-    try:
-        table.new_game()
+table.join(maks)
+table.join(kris)
+table.join(alex)
+# for i in range(10):
+flag = True
+while flag:
+    # try:
+    a = table.new_game()
+    for i in a:
+        if i.combination.name == 'Royal Flush':
+            flag = False
+            break
+    else:
         print()
         continue
-    except TypeError:
-        print('Нет флэша')
+    # except TypeError:
+    #     pass
 # c1 = Card('A', '♦')
 # c2 = Card('K', '♦')
 # c3 = Card('Q', '♦')

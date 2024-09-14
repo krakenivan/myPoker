@@ -26,7 +26,8 @@ class Table:
         while self.guest and len(self.players) < 6:
             self.players.append(self.guest.pop(0))
         self._game = Game(tuple(self.players), self.blind)
-        self._game.start()
-        self._game.check_winner()
-        self._game.show_players()
         self._game.drop_cards()
+        self._game.start()
+        a = self._game.check_winner()
+        self._game.show_players()
+        return a
