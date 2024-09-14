@@ -80,7 +80,8 @@ class Game:
             winner = [player for player in list_winner if not (player.combination < win_high_card)]
         else:
             winner = list_winner
-        print('Победитель', *winner)
+        print('Победитель',len(winner), *winner)
+        print()
         return
 
     @staticmethod
@@ -99,10 +100,19 @@ class Game:
 
     @staticmethod
     def check_kicker(cards: list[Card]):
-        return True, Kicker(max(cards))
+        list_card: list[Card] = sorted(cards, key=lambda x: x.score)
+        no_comb: list[Card] = []
+        comb_cart = max(cards)
+        list_card.remove(max(cards))
+        for i in range(4):
+            card = list_card.pop()
+            no_comb.append(card)
+        return True, Kicker(comb_cart, no_comb)
 
     def check_pair(self, cards: list[Card]):
         comb_cart: list[Card] = []
+        list_card: list[Card] = sorted(cards, key=lambda x: x.score)
+        no_comb: list[Card] = []
 
         def pair(card_dict: dict):
             for check_rank, count in card_dict.items():
@@ -114,10 +124,17 @@ class Game:
             for card in cards:
                 if card.rank == rank:
                     comb_cart.append(card)
-            return True, Pair(comb_cart)
+                    list_card.remove(card)
+            for i in range(3):
+                card = list_card.pop()
+                if card > max(comb_cart):
+                    no_comb.append(card)
+            return True, Pair(comb_cart, no_comb)
 
     def check_tow_pairs(self, cards: list[Card]):
         comb_cart: list[Card] = []
+        list_card: list[Card] = sorted(cards, key=lambda x: x.score)
+        no_comb: list[Card] | None = None
 
         def tow_pairs(card_dict: dict):
             list_rank = []
@@ -132,6 +149,7 @@ class Game:
                 for card in cards:
                     if card.rank in rank:
                         comb_cart.append(card)
+                        list_card.remove(card)
             elif len(rank) > 2:
                 ind_min_rank = 12
                 for i in rank:
@@ -142,13 +160,17 @@ class Game:
                 for card in cards:
                     if card.rank in rank:
                         comb_cart.append(card)
+                        list_card.remove(card)
             else:
                 return
-
-            return True, TwoPairs(sorted(comb_cart, key=lambda x: x.score))
+            if list_card[-1] > max(comb_cart):
+                no_comb: Card = list_card[-1]
+            return True, TwoPairs(sorted(comb_cart, key=lambda x: x.score), no_comb)
 
     def check_set(self, cards: list[Card]):
         comb_cart: list[Card] = []
+        list_card: list[Card] = sorted(cards, key=lambda x: x.score)
+        no_comb: list[Card] = []
 
         def set_cart(card_dict: dict):
             list_rank = []
@@ -163,6 +185,7 @@ class Game:
                 for card in cards:
                     if card.rank == rank[0]:
                         comb_cart.append(card)
+                        list_card.remove(card)
             else:
                 ind_max_rank = 0
                 for i in rank:
@@ -172,7 +195,12 @@ class Game:
                 for card in cards:
                     if card.rank == max_rank:
                         comb_cart.append(card)
-            return True, SetCard(comb_cart)
+                        list_card.remove(card)
+            for i in range(2):
+                card = list_card.pop()
+                if card > max(comb_cart):
+                    no_comb.append(card)
+            return True, SetCard(comb_cart, no_comb)
 
     @staticmethod
     def check_straight(cards: list[Card]) -> tuple[bool, Straight] | None:

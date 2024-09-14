@@ -10,9 +10,9 @@ alex = Player('Алекс')
 table = Table(ivan, blind=10)
 table.join(bob)
 table.join(jon)
-table.join(maks)
-table.join(kris)
-table.join(alex)
+# table.join(maks)
+# table.join(kris)
+# table.join(alex)
 for i in range(10):
     try:
         table.new_game()
