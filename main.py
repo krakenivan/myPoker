@@ -17,9 +17,10 @@ table.join(alex)
 flag = True
 while flag:
     # try:
+    print()
     a = table.new_game()
     for i in a:
-        if i.combination.name == 'Royal Flush':
+        if i.combination.name == 'Straight Flush':
             flag = False
             break
     else:

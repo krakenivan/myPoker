@@ -4,7 +4,7 @@ class Card:
     def __init__(self, rank: str, suit: str):
         self.__rank = rank
         self.__suit = suit
-        self.__score = self.ranks.index(self.__rank) + 1
+        self.__score = self.ranks.index(self.__rank) + 2
 
     @property
     def rank(self):
@@ -17,6 +17,10 @@ class Card:
     @property
     def score(self):
         return self.__score
+
+    @score.setter
+    def score(self, value):
+        self.__score = value
 
     def __str__(self):
         return f"{self.rank}{self.suit}"

@@ -6,6 +6,7 @@ from .game import Game
 from .card import Card
 from .combination import *
 
+
 __all__ = ['Deck', 'Player', 'Hand', 'Table', 'Game', 'Card',
            'RoyalFlush', 'StraightFlush', 'FourOfKind', 'FullHouse',
-           'Flush', 'Straight', 'SetCard', 'TwoPairs', 'Pair', Kicker]
+           'Flush', 'Straight', 'SetCard', 'TwoPairs', 'Pair', 'Kicker']

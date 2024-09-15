@@ -1,6 +1,7 @@
 from random import shuffle
 from .card import Card
 
+
 class Deck:
     # suits = ['\033[30m♠\033[0m', '\033[31m♥\033[0m', '\033[31m♦\033[0m', '\033[30m♣\033[0m']
     suits = ['♠', '♥', '♦', '♣']
