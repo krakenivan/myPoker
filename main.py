@@ -6,26 +6,63 @@ jon = Player('Джон')
 maks = Player('Макс')
 kris = Player('Крис')
 alex = Player('Алекс')
+danila = Player('Данила')
+gans = Player('Ганс')
+sam = Player('Cэм')
 
-table = Table(ivan, blind=10)
+table = Table(ivan, blind=20)
+# table.set_dealer()
+
+# print(table.players)
 table.join(bob)
 table.join(jon)
 table.join(maks)
 table.join(kris)
 table.join(alex)
+print()
+table.new_game()
+
+
+# print('Игроки', table.players)
+# print('Гости', table.guests)
+# table.kick(bob)
+# table.kick(maks)
+# print()
+# table.new_game()
+# # print('Игроки', table.players)
+# # print('Гости', table.guests)
+# table.join(danila)
+# table.join(gans)
+# # table.join(sam)
+# # print()
+# #
+# table.new_game()
+# # print('Игроки', table.players)
+# # print('Гости', table.guests)
+# # table.kick(gans)
+# table.join(bob)
+# # table.join(maks)
+# # print()
+# #
+# table.new_game()
+# # print('Игроки', table.players)
+# print('Гости', table.guests)
+# print(table.players)
+
+# table.join(alex)
 # for i in range(10):
-flag = True
-while flag:
-    # try:
-    print()
-    a = table.new_game()
-    for i in a:
-        if i.combination.name == 'Straight Flush':
-            flag = False
-            break
-    else:
-        print()
-        continue
+# # flag = True
+# # while flag:
+#     # try:
+#     print()
+#     a = table.new_game()
+    # for i in a:
+    #     if i.combination.name == 'Royal Flush':
+    #         flag = False
+    #         break
+    # else:
+    #     print()
+    #     continue
     # except TypeError:
     #     pass
 # c1 = Card('A', '♦')

@@ -129,7 +129,7 @@ class Flush:
     __rating = 6
 
     def __init__(self, combination: list[Card]):
-        self.combination = sorted(combination, key=lambda x: x.score)
+        self.combination = sorted(combination, key=lambda x: x.score)[-5:]
 
     @property
     def name(self):
