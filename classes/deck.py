@@ -22,5 +22,5 @@ class Deck:
         rows = len(self._deck)//9
         res = ''
         for i in range(rows + 1):
-            res += ' '.join(list(map(lambda x: f'{str(x):>12}', self._deck[10*i:10*i + 10]))) + '\n'
+            res += ' '.join(list(map(lambda x: f'{str(x):>4}', self._deck[10*i:10*i + 10]))) + '\n'
         return res

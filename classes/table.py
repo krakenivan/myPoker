@@ -47,6 +47,12 @@ class Table:
                 players[(ind + 1) % len(players)].dealer = True
                 break
 
+    def crediting_winnings(self, winning_players):
+        quantity_winner = len(winning_players)
+        for player in winning_players:
+            player.stack += (self._game._bank/quantity_winner)
+
+
 
 
 
@@ -58,18 +64,27 @@ class Table:
     #             break
 
     def new_game(self):
-        while self.guests and None in self.players:
-            for ind, player in enumerate(self.players):
-                if not player and self.guests:
-                    self.players[ind] = self.guests.pop(0)
-        # while self.guest and False in self.players:
-        #     self.players.append(self.guest.pop(0))
-        self.clearing_marks()
-        self._game = Game(tuple(self.players), self.blind)
-        self.drop_cards_quest()
-        self._game.drop_cards()
-        self._game.start()
-        self.change_dealer()
-        # a = self._game.check_winner()
-        # self._game.show_players()
-        # return a
+        while (len(self.players) + len(self.guests)) > 1:
+            while self.guests and None in self.players:
+                for ind, player in enumerate(self.players):
+                    if not player and self.guests:
+                        self.players[ind] = self.guests.pop(0)
+            # while self.guest and False in self.players:
+            #     self.players.append(self.guest.pop(0))
+            self.clearing_marks()
+            self._game = Game(tuple(self.players), self.blind)
+            self.drop_cards_quest()
+            self._game.drop_cards()
+            self._game.show_players()
+            print()
+            winner = self._game.start()
+            print(type(winner))
+            print('Победитель', *winner)
+            print()
+            self.crediting_winnings(winner)
+            self.change_dealer()
+
+            # winner = self._game.showdown()
+            self._game.show_players()
+            # return a
+            # print(self.players)
