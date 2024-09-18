@@ -38,6 +38,7 @@ class Table:
             if player:
                 player.sb = False
                 player.bb = False
+                player.bet_fold = False
 
     def change_dealer(self):
         players = [player for player in self.players if player]
@@ -52,17 +53,6 @@ class Table:
         for player in winning_players:
             player.stack += (self._game._bank/quantity_winner)
 
-
-
-
-
-    # def set_blind(self):
-    #     players = [player for player in self.players if player]
-    #     for ind, player in enumerate(players):
-    #         if player.dealer:
-    #             players[(ind + 1) % len(players)].sb = True
-    #             break
-
     def new_game(self):
         while (len(self.players) + len(self.guests)) > 1:
             while self.guests and None in self.players:
@@ -75,16 +65,11 @@ class Table:
             self._game = Game(tuple(self.players), self.blind)
             self.drop_cards_quest()
             self._game.drop_cards()
-            self._game.show_players()
-            print()
+            # self._game.show_players()
+            # print()
             winner = self._game.start()
-            print(type(winner))
-            print('Победитель', *winner)
-            print()
             self.crediting_winnings(winner)
-            self.change_dealer()
 
-            # winner = self._game.showdown()
-            self._game.show_players()
-            # return a
-            # print(self.players)
+            print('Победитель', len(winner), *winner)
+            print()
+            self.change_dealer()

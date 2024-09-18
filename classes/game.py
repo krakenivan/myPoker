@@ -1,16 +1,13 @@
 from .player import Player
 from .deck import Deck
 from .bet import Bet
-from .hand import Hand
-from .card import Card
 from .combination import *
 from .game_helper import *
 
-# TODO доработать размешение меток дилера и сб и бб
+
 class Game:
     def __init__(self, players: tuple[Player, ...], blind: int | float):
         self._bank: int = 0
-        # self.table: Hand = Hand()
         self.board: list[Card] = []
         self.blind = blind
         self._players: tuple[Player, ...] = players
@@ -25,43 +22,26 @@ class Game:
         # self._players[0].hand._hand = [Card('2', '♠'), Card('A', '♠')]
         # self._players[1].hand._hand = [Card('2', '♠'), Card('6', '♠')]
         self.set_blind()
-        self.show_players()
         print()
-
-
-        self.preflop()
-        # self.show_table()
-        if len(self.players_in_game) == 1:
-            return self.players_in_game
-
-        self.flop()
-        # self.show_table()
-        if len(self.players_in_game) == 1:
-            return self.players_in_game
-        self.turn_or_river()
-        # self.board.append(Card('9', '♣'))
-        # self.show_table()
-        if len(self.players_in_game) == 1:
-            return self.players_in_game
-        self.turn_or_river()
-        # self.board.append(Card('10', '♦'))
-        # self.show_table()
-        if len(self.players_in_game) == 1:
-            return self.players_in_game
-        winner = self.showdown()
-
-        self.show_players()
+        for round_bet in (self.preflop, self.flop, self.turn_or_river, self.turn_or_river, self.showdown):
+            winner = round_bet()
+            self.show_players()
+            if winner:
+                break
+        self.is_table_flop = False
         return winner
 
     def preflop(self):
         self.bet.bet_blind()
+        self.add_bet()
         self.dealing_cards()
         self.show_table()
-        # self.show_players()
         print()
-        self.accept_bet(self.list_players_preflop)
+        winner = self.accept_bet(self.list_players_preflop)
         self.update_list_player()
         self.resetting_blind_markers()
+        if winner:
+            return winner
 
 
     def flop(self):
@@ -71,23 +51,31 @@ class Game:
         # self.board.append(Card('6', '♥'))
         # self.board.append(Card('7', '♥'))
         # self.board.append(Card('8', '♣'))
-        self.show_table()
-        # self.show_players()
         self.is_table_flop = True
+
+        self.add_bet()
+        print()
+        self.show_table()
         self.bet_reset(self.blind)
-        self.accept_bet(self.list_players_postflop)
+        winner = self.accept_bet(self.list_players_postflop)
         self.update_list_player()
         self.resetting_blind_markers()
+        if winner:
+            return winner
 
 
     def turn_or_river(self):
         self._deck.deal_card()
         self.board.append(self._deck.deal_card())
+        self.add_bet()
+        print()
         self.show_table()
         self.bet_reset(self.blind)
-        self.accept_bet(self.list_players_postflop)
+        winner = self.accept_bet(self.list_players_postflop)
         self.update_list_player()
         self.resetting_blind_markers()
+        if winner:
+            return winner
 
     def show_table(self):
         street = 'Префлоп'
@@ -106,7 +94,7 @@ class Game:
 
     def dealing_cards(self):
         self._deck.shuffle()
-        print(self._deck)
+        # print(self._deck)
         index_player = tuple(range(len(self.players_in_game)))
         next_had = 0
 
@@ -131,7 +119,24 @@ class Game:
             count_had += 1  # увеличение счетчика
         print(self.list_players_preflop)
         print(self.list_players_postflop)
-        self.show_players()
+
+    def add_bet(self):
+
+        for player in self.players_in_game:
+            player.list_bet.clear()
+            player.list_bet.extend(["фолд", "чек",  "кол", "рейз", "ол-ин"])
+            if not player.bb:
+                player.list_bet.remove("чек")
+            if player.bb:
+                player.list_bet.remove("фолд")
+                player.list_bet.remove("кол")
+
+            if self.is_table_flop:
+                player.list_bet.remove("кол")
+                player.list_bet.remove("фолд")
+                player.list_bet.insert(0, "чек")
+                player.list_bet.insert(1, "бэт")
+
 
     def drop_cards(self):
         for player in self._players:
@@ -139,7 +144,6 @@ class Game:
                 player.drop()
 
     def set_blind(self):
-        # players = [player for player in self._players if player]
         for ind, player in enumerate(self.players_in_game):
             if player.dealer:
                 self.players_in_game[(ind + 1) % len(self.players_in_game)].sb = True
@@ -159,15 +163,19 @@ class Game:
     def accept_bet(self, players):
         flag_bet = True  # Флаг ставок
         while flag_bet:  # Ставки пока флаг ставок True
-            for player in players:  # прием ставок игроков, первый ставит следующий после большого блайнда
+            for player in players:  # прием ставок
                 if not player.bet_fold:  # если игрок не скинул еще карты
-                    if not self.is_table_flop:
+                    if not self.is_table_flop:  # на префлопе первый ставит следующий после большого блайнда
                         self.bet.bet_preflop(player)  # запрос ставки
                     else:
-                        self.bet.bet_postflop(player)
+                        self.bet.bet_postflop(player)  # на псотфлопе первый малый блайнд
                 if self.bet.count_bet == len(self.players_in_game):  # Если количество ставок равно количеству игроков
                     flag_bet = False  # флаг ставок False
                     break  # остановка цикла
+                winner = [player for player in players if not player.bet_fold]
+                if len(winner) == 1:  # Если есть один победитель
+                    return winner
+
 
     def bet_reset(self, blind):
         for player in self._players:
@@ -180,10 +188,9 @@ class Game:
         self.bet.bet_min_raise = self.bet.bet_call * 2  # ставка минимального рейза
         self.bet.is_raise = False
         self.bet.count_bet = 0
+        self.bet.count_fold = 0
         self.bet.is_bet_postflop = False
 
-    # def check_winner(self, players):
-    #     if len(players)
 
     def showdown(self):
         rating_win_combination = 0
@@ -208,8 +215,6 @@ class Game:
             winner = [player for player in list_winner if not (player.combination < win_high_card)]
         else:
             winner = list_winner
-        # print('Победитель', len(winner), *winner)
-        # print()
         return winner
 
     @staticmethod

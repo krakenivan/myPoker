@@ -23,6 +23,7 @@ class Bet:
                           'reset']  # слова для сброса
         self.world_preflop = self.word_rais + self.word_call + self.word_fold  # возможные ответы для ставки на префлопе
         self.count_bet = 0
+        self.count_fold = 0
         self.is_bet_postflop = False  # был ли бэт
         # self.last_bid_amount = 0  # сумма последней ставки
 
@@ -35,7 +36,6 @@ class Bet:
                     self.game._bank += player.bet(self.big_blind)
 
     def bet_preflop(self, player: Player):
-        # self.count_bid = 0
         while True:  # цикл запроса ставки
             bet = input(f"Игрок {player}, ваша ставка: \n").lower()  # запрос ставки
 
@@ -44,13 +44,13 @@ class Bet:
                 if bet in self.word_check:
                     player.bb = False  # убираем метку ББ
                     self.count_bet += 1  # увеличиваем счетчик ставок
-                    print(self.game._bank)
+                    print('В банке', self.game._bank)
                     return
                 elif bet in self.word_call:
                     print(f'Ваш {bet} равен чеку. Ставка принята')
                     player.bb = False  # убираем метку ББ
                     self.count_bet += 1  # увеличиваем счетчик ставок
-                    print(self.game._bank)
+                    print('В банке', self.game._bank)
                     return
 
             elif bet in self.world_preflop:  # если ставка из списка ставок
@@ -64,7 +64,7 @@ class Bet:
                 #     return
                 # elif not player.bb and player.sb:  # если игрок на позиции малого блайнда
                 #     # counts_the_bet(bid, player, SB=True)
-                print(self.game._bank)
+                print('В банке', self.game._bank)
                 return
 
             else:  # если ставка не чек и не из списка ставок перезапуск цикла
@@ -125,7 +125,8 @@ class Bet:
             self.bet_call = bet_raise  # колл теперь равен рейзу
             self.bet_min_raise = bet_raise * 2
             self.is_raise = True
-            self.count_bet = 1  # счетчик ставок = 1
+            self.count_bet = 1 + self.count_fold  # счетчик ставок = 1
+            self.remove_bet_check_and_bet(self.game.players_in_game)
             return
 
         elif bet in self.word_call:  # если ставка колл
@@ -157,7 +158,7 @@ class Bet:
             # если ставка бет (не работает на префлопе)
             # или если ставка рейз при отсутствии бета
             if bet in self.word_rais:
-                print(f'Ваш {bet} приравнивается к бэту. Минимальная сумма {self.bet_blind}')
+                print(f'Ваш {bet} приравнивается к бэту. Минимальная сумма {self.big_blind}')
             bet_bet = self.bet_bet()  # вызов функции бета и сохранить в переменную сумму ставки
             player.bet(bet_bet)
             # player['stack'] -= bid_bet  # вычисть сумму бета из стэка игрока
@@ -168,6 +169,8 @@ class Bet:
             self.bet_min_raise = bet_bet * 2
             self.is_bet_postflop = True
             self.count_bet = 1  # счетчик ставок = 1
+            self.remove_bet_check_and_bet(self.game.players_in_game)
+
             return
 
         elif bet in self.word_fold:  # если ставка фолд выйти из функции
@@ -175,6 +178,8 @@ class Bet:
             player.bet_fold = True
             player.drop()
             self.count_bet += 1
+            self.count_fold += 1
+            # self.remove_bet_check_and_bet(self.game.players_in_game)
             return
 
 
@@ -213,6 +218,16 @@ class Bet:
                 print("Введено неверное значение. Пожалуйста, введите сумму в виде числа.")
                 continue
 
+    def remove_bet_check_and_bet(self, players):
+        for player in players:
+            if "чек" in player.list_bet:
+                player.list_bet.remove("чек")
+            if "бэт" in player.list_bet:
+                player.list_bet.remove("бэт")
+            if "фолд" not in player.list_bet:
+                player.list_bet.insert(0, "фолд")
+            if "кол" not in player.list_bet:
+                player.list_bet.insert(1, "кол")
 
 
 
