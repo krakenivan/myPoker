@@ -1,6 +1,6 @@
 from .player import Player
 from .deck import Deck
-from .bet import Bet
+from .bet import Betting
 from .combination import *
 from .game_helper import *
 
@@ -14,7 +14,7 @@ class Game:
         self.players_in_game: list[Player] = [player for player in self._players if player]  # игроки в игре
         self.list_players_preflop: list[Player] = []  # список игроков для ставок на префлопе
         self.list_players_postflop: list[Player] = []  # список игроков для ставок на постфлопе
-        self.bet: Bet = Bet(self, blind)  # ставка
+        self.bet: Betting = Betting(self, blind)  # ставка
         self._deck: Deck = Deck()  # колода
         self.is_table_flop: bool = False  # индикатор флопа на столе
 
@@ -29,10 +29,11 @@ class Game:
         print()
         for round_bet in (self.preflop, self.flop, self.turn_or_river, self.turn_or_river, self.showdown):
             winner: list[Player] = round_bet()
-            self.show_players()
+            # self.show_players()
             if winner:
                 break
         self.is_table_flop = False
+        self.reset_bet()
         return winner
 
     def preflop(self) -> list[Player] | None:
@@ -49,6 +50,7 @@ class Game:
         self.update_list_player()  # обновление списков игроков
         self.resetting_blind_markers()  # сброс маркеров блайндов
         if winner:
+            self.drop_cards()
             return winner
 
     def flop(self) -> list[Player] | None:
@@ -72,6 +74,7 @@ class Game:
         self.update_list_player()
         self.resetting_blind_markers()
         if winner:
+            self.drop_cards()
             return winner
 
     def turn_or_river(self) -> list[Player] | None:
@@ -89,6 +92,7 @@ class Game:
         self.update_list_player()
         self.resetting_blind_markers()
         if winner:
+            self.drop_cards()
             return winner
 
     def show_table(self):
@@ -134,8 +138,6 @@ class Game:
             # размещение в порядке начала ставок на постфлопе (первый малый блайнд)
             next_had = index_player[(next_had + 1) % len(index_player)]  # переход к следующе руке
             count_had += 1  # увеличение счетчика
-        print(self.list_players_preflop)
-        print(self.list_players_postflop)
 
     def add_bet(self):
         """Добавление возможных ставок игрокам в зависимости от позиции и от наличия флопа на столе"""
@@ -153,6 +155,11 @@ class Game:
                 player.list_bet.remove("фолд")
                 player.list_bet.insert(0, "чек")
                 player.list_bet.insert(1, "бэт")
+
+    def reset_bet(self):
+        """удаление возможных ставок игрока"""
+        for player in self.players_in_game:
+            player.list_bet.clear()
 
     def drop_cards(self):
         """Сброс карт игрокам"""
@@ -194,12 +201,12 @@ class Game:
                         self.bet.bet_preflop(player)  # запрос ставки
                     else:
                         self.bet.bet_postflop(player)  # на постфлопе первый малый блайнд
-                if self.bet.count_bet == len(self.players_in_game):  # Если количество ставок равно количеству игроков
-                    flag_bet = False  # флаг ставок False
-                    break  # остановка цикла
                 winner = [player for player in players if not player.bet_fold]  # проверка победителя
                 if len(winner) == 1:  # Если есть один победитель
                     return winner
+                if self.bet.count_bet == len(self.players_in_game):  # Если количество ставок равно количеству игроков
+                    flag_bet = False  # флаг ставок False
+                    break  # остановка цикла
 
     def bet_reset(self, blind):
         """Сброс индикаторов для ставок"""

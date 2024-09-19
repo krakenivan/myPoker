@@ -4,7 +4,7 @@ from .hand import Hand
 from .table import Table
 from .game import Game
 from .card import Card
-from .bet import Bet
+from .bet import Betting
 from .combination import *
 
 

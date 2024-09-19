@@ -14,6 +14,7 @@ class Table:
         self.players: list[Player | None] = [host, *[None]*5]
         self.blind: int | float = blind
         self._game: Game | None = None
+        self.ind_dealer: int = 0  # индекс дилера в списке игроков
         self.set_dealer()  # выставление метки дилера
 
     def join(self, player: Player):
@@ -35,15 +36,21 @@ class Table:
     def set_dealer(self):
         """Выставление метки дилера"""
         players = [player for player in self.players if player]
-        choice(players).dealer = True
+        play_dealer = choice(players)
+        play_dealer.dealer = True
+        self.ind_dealer = self.players.index(play_dealer)
 
     def clearing_marks(self):
-        """Очистка меток блайндов и фолда у игроков"""
+        """Очистка меток блайндов и фолда у игроков и гостей"""
         for player in self.players:
             if player:
                 player.sb = False
                 player.bb = False
                 player.bet_fold = False
+        for quest in self.guests:
+            quest.sb = False
+            quest.bb = False
+            quest.bet_fold = False
 
     def change_dealer(self):
         """Передвижение метки диллера"""
@@ -53,6 +60,14 @@ class Table:
                 player.dealer = False
                 players[(ind + 1) % len(players)].dealer = True
                 break
+        else:
+            while True:
+                self.ind_dealer = (self.ind_dealer + 1) % len(players)
+                if self.players[self.ind_dealer]:
+                    players[self.ind_dealer].dealer = True
+                    break
+
+
 
     def crediting_winnings(self, winning_players):
         """Начисление выиграша"""
@@ -77,7 +92,7 @@ class Table:
             # print()
             winner = self._game.start()
             self.crediting_winnings(winner)
-
+            print()
             print('Победитель', len(winner), *winner)
             print()
             self.change_dealer()
