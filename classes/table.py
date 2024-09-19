@@ -7,33 +7,38 @@ from .game import Game
 class Table:
     table_id = 0
 
-    def __init__(self, host: Player, blind: int = 10):
+    def __init__(self, host: Player, blind: int | float = 10):
         Table.table_id += 1
         self.table_id = Table.table_id
         self.guests: list[Player] = []
         self.players: list[Player | None] = [host, *[None]*5]
-        self.blind = blind
+        self.blind: int | float = blind
         self._game: Game | None = None
-        self.set_dealer()
+        self.set_dealer()  # выставление метки дилера
 
     def join(self, player: Player):
+        """Добавить игрока"""
         self.guests.append(player)
 
     def kick(self, del_player: Player):
+        """Удалить игрока"""
         for ind, player in enumerate(self.players):
             if isinstance(player, Player) and player.name == del_player.name:
                 self.players[ind] = None
                 break
 
     def drop_cards_quest(self):
+        """Сброс карт у гостей"""
         for quest in self.guests:
             quest.drop()
 
     def set_dealer(self):
+        """Выставление метки дилера"""
         players = [player for player in self.players if player]
         choice(players).dealer = True
 
     def clearing_marks(self):
+        """Очистка меток блайндов и фолда у игроков"""
         for player in self.players:
             if player:
                 player.sb = False
@@ -41,6 +46,7 @@ class Table:
                 player.bet_fold = False
 
     def change_dealer(self):
+        """Передвижение метки диллера"""
         players = [player for player in self.players if player]
         for ind, player in enumerate(players):
             if player.dealer:
@@ -49,13 +55,15 @@ class Table:
                 break
 
     def crediting_winnings(self, winning_players):
+        """Начисление выиграша"""
         quantity_winner = len(winning_players)
         for player in winning_players:
             player.stack += (self._game._bank/quantity_winner)
 
     def new_game(self):
-        while (len(self.players) + len(self.guests)) > 1:
-            while self.guests and None in self.players:
+        """Запуск игры"""
+        while (len(self.players) + len(self.guests)) > 1:  # если игроков больше 1
+            while self.guests and None in self.players:  # добавление гостей за стол
                 for ind, player in enumerate(self.players):
                     if not player and self.guests:
                         self.players[ind] = self.guests.pop(0)

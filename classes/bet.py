@@ -1,16 +1,15 @@
 from .player import Player
-# from .game import Game
 
-
+# TODO проработать ставку ол-ин
 class Bet:
     def __init__(self, game, blind: int | float):
-        self.game = game
-        self.bet: float = blind  # Бет: минимальная ставка
+        self.game = game  # запущенная игра
+        self.bet: float = blind  # Бет: минимальная ставка поле флопа
         self.big_blind: float = blind  # величина большого блайнда
         self.small_blind: float = blind/2  # величина малого блайнда
-        self.bet_call: float = self.big_blind  # ставка колла
-        self.bet_min_raise: float = self.bet_call * 2  # ставка минимального рейза
-        self.is_raise = False
+        self.bet_call: float = self.big_blind  # размер ставки колл
+        self.bet_min_raise: float = self.bet_call * 2  # размер минимального рейза
+        self.is_raise = False  # индикатор рейза
         self.word_check = ['check', 'chek', 'chec', 'чек', 'чэк']  # слова для ставки чек чека
         self.word_bet = ['bet', 'beet', 'бет', 'бэт', 'ставка', 'bid']  # слова для ставки бет
         self.word_rais = ["рейз", "райз", "повышаю", "повышение", 'raise', 'raising', 'promotion', 'rase',
@@ -22,12 +21,13 @@ class Bet:
         self.word_fold = ["фолд", "пас", "пасс", "сброс", "сбрасываю", 'fold', 'fould', 'pas', 'pass',
                           'reset']  # слова для сброса
         self.world_preflop = self.word_rais + self.word_call + self.word_fold  # возможные ответы для ставки на префлопе
-        self.count_bet = 0
-        self.count_fold = 0
+        self.count_bet = 0  # счетчик ставок
+        self.count_fold = 0  # счетчик фолда
         self.is_bet_postflop = False  # был ли бэт
         # self.last_bid_amount = 0  # сумма последней ставки
 
     def bet_blind(self):
+        """Выставление блайндов"""
         for player in self.game.players_in_game:
             if player:
                 if player.sb:
@@ -36,17 +36,24 @@ class Bet:
                     self.game._bank += player.bet(self.big_blind)
 
     def bet_preflop(self, player: Player):
+        """Запрос ставок на префлопе
+        :param player: ставящий игрок
+        """
         while True:  # цикл запроса ставки
-            bet = input(f"Игрок {player}, ваша ставка: \n").lower()  # запрос ставки
+            bet = input(f"Игрок {player}, ваша ставка: \n").lower().strip()  # запрос ставки
+            bet_list = bet.split()  # формирование списка из ставки
+            if len(bet_list) > 1:  # если ставка содержит больше одного слова
+                pass
+                # TODO продумать логику при передачи ставки с суммой
 
-            if player.bb and (not self.is_raise) and (bet in self.word_check or bet in self.word_call):  # если игрок на позиции большого блайнда,
-                # рейза не было и ставка == чек выход из функции
-                if bet in self.word_check:
+            if player.bb and (not self.is_raise) and (bet in self.word_check or bet in self.word_call):
+                # если игрок на позиции большого блайнда, рейза не было и ставка == чек или кол
+                if bet in self.word_check:  # если чек
                     player.bb = False  # убираем метку ББ
                     self.count_bet += 1  # увеличиваем счетчик ставок
                     print('В банке', self.game._bank)
                     return
-                elif bet in self.word_call:
+                elif bet in self.word_call:  # если кол
                     print(f'Ваш {bet} равен чеку. Ставка принята')
                     player.bb = False  # убираем метку ББ
                     self.count_bet += 1  # увеличиваем счетчик ставок
@@ -54,7 +61,7 @@ class Bet:
                     return
 
             elif bet in self.world_preflop:  # если ставка из списка ставок
-                self.bet_calculation(bet, player)
+                self.bet_calculation(bet, player)  # расчет ставик
 
                 # if not player.bb and not player.sb:  # если игрок не на позиции блайндов
                 #     # counts_the_bet(bid, player)
@@ -71,72 +78,65 @@ class Bet:
                 print("Ставка не верна")
                 continue
 
-    def bet_postflop(self, player):
+    def bet_postflop(self, player: Player):
+        """Запрос ставок на постфлопе
+        :param player: ставящий игрок
+        """
         while True:  # цикл запроса ставки
             bet = input(f"Игрок {player}, ваша ставка: \n").lower()  # запрос ставки
 
-            if player.last_bet_amount == 0 and (bet in self.word_check) and (not self.is_bet_postflop):  # если ставка чек выход из функции,
-                # возможна при отсутствии бета
+            if player.last_bet_amount == 0 and (bet in self.word_check) and (not self.is_bet_postflop):
+                # если ставка чек выход из функции, возможна при отсутствии бета
                 self.count_bet += 1
                 return
-            elif player.last_bet_amount == 0 and (bet in self.word_bet) and (not self.is_bet_postflop):  # если ставка бет,
-                # возможна при отсутствии бета
-                self.bet_calculation(bet, player)
+            elif player.last_bet_amount == 0 and (bet in self.word_bet) and (not self.is_bet_postflop):
+                # если ставка бет, возможна при отсутствии бета
+                self.bet_calculation(bet, player)  # расчет ставки
                 return
             elif (bet in self.word_fold) or (bet in self.word_rais):  # если на постфлопе ставка рейз или фолд
-                self.bet_calculation(bet, player)
+                self.bet_calculation(bet, player)  # расчет ставки
                 return
-            elif (bet in self.word_call) and self.is_bet_postflop:  # если на постфлопе ставка колл,
-                # возможна только при наличии ставки бет
-                self.bet_calculation(bet, player)
+            elif (bet in self.word_call) and self.is_bet_postflop:
+                # если на постфлопе ставка колл, возможна только при наличии ставки бет
+                self.bet_calculation(bet, player)  # расчет ставки
                 return
             else:  # если ставка не чек и не из списка ставок перезапуск цикла
                 print("Ставка не верна")
                 continue
 
-    def bet_calculation(self, bet, player):
+    def bet_calculation(self, bet: str, player: Player):
+        """
+        Расчет ставоки
+        :param bet: название ставки
+        :param player: ставящий игрок
+        :return: None
+        """
         if (((not self.game.is_table_flop) and (bet in self.word_rais)) or
                 ((self.game.is_table_flop) and self.is_bet_postflop and (bet in self.word_rais))):
             # если ставка рейз и флопа не было или если ставка рейз после флопа при наличие бета
 
-            # if player.sb or player.bb:  # если позиция на блайнде
-            #     self.processing_bid_blind_positions(player)  # функция обработки ставок блайндов
-
             bet_raise = self.bet_raise()  # вызов функции рейза и сохранить в переменную сумму ставки
 
-            if player.last_bet_amount != 0:  # если ставка уже была
+            if player.last_bet_amount != 0:  # если ставка у игрока уже была
                 self.game._bank -= player.last_bet_amount
-                player.bet_increase(bet_raise)
-                self.game._bank += bet_raise
+                player.bet_increase(bet_raise)  # повышение
+                self.game._bank += bet_raise  # добавление в банк
             else:
                 # player.bid(bid_raise)
-                self.game._bank += player.bet(bet_raise)
-            # self.game._bank -= player.last_bid_amount  # вычесть ставку из банка
-            # player['stack'] += player['sum_bid']  # добавить ставку к стеку
-            # self.game.bank += bid_raise
-            # player['stack'] -= bid_raise  # вычисть сумму рейза из стэка игрока
-            # player['sum_bid'] = bid_raise  # устанавливаем сумму последней ставки
-            # bank += bid_raise  # прибавить рейз в банк
-            # bank = round(bank, 2)
-
-            # if player not in gammer:  # если игроку отсутствует в списке играющих
-            #     gammer.append(player)  # добавить игрока в список играющих
+                self.game._bank += player.bet(bet_raise) # иначе ставка
 
             self.bet_call = bet_raise  # колл теперь равен рейзу
-            self.bet_min_raise = bet_raise * 2
-            self.is_raise = True
-            self.count_bet = 1 + self.count_fold  # счетчик ставок = 1
-            self.remove_bet_check_and_bet(self.game.players_in_game)
+            self.bet_min_raise = bet_raise * 2  # установка минимального рейза
+            self.is_raise = True  # метка рейза
+            self.count_bet = 1 + self.count_fold  # счетчик ставок = 1 + количество сбросов
+            self.remove_bet_check_and_bet(self.game.players_in_game)  # удаляем чек и бэт из списка
             return
 
         elif bet in self.word_call:  # если ставка колл
 
-            # if player.sb or player.bb:  # если позиция на блайнде
-            #     self.processing_bid_blind_positions(player)  # функция обработки ставок блайндов
-
             print(f'Ставка {self.bet_call} принята')
 
-            if player.last_bet_amount != 0:  # если ставка уже была
+            if player.last_bet_amount != 0:  # если ставка у игрока уже была
                 self.game._bank -= player.last_bet_amount
                 player.bet_increase(self.bet_call)
                 self.game._bank += self.bet_call
@@ -144,39 +144,27 @@ class Bet:
                 player.bet(self.bet_call)
                 self.game._bank += self.bet_call
 
-            # self.game._bank -= player.last_bid_amount  # вычесть ставку из банка
-            # player['stack'] += player['sum_bid']  # добавить ставку к стеку
-            # self.game._bank += self.bid_call
-
-            # if player not in gammer:
-            #     gammer.append(player)  # добавить игрока в список играющих
-
             self.count_bet += 1  # счетчик ставок увеличить на 1
             return
 
         elif bet in self.word_bet or ((bet in self.word_rais) and not self.is_bet_postflop):
-            # если ставка бет (не работает на префлопе)
-            # или если ставка рейз при отсутствии бета
-            if bet in self.word_rais:
+            # если ставка бет (не работает на префлопе) или если ставка рейз при отсутствии бета
+            if bet in self.word_rais:  # если рейз
                 print(f'Ваш {bet} приравнивается к бэту. Минимальная сумма {self.big_blind}')
             bet_bet = self.bet_bet()  # вызов функции бета и сохранить в переменную сумму ставки
             player.bet(bet_bet)
-            # player['stack'] -= bid_bet  # вычисть сумму бета из стэка игрока
-            # player['sum_bid'] = bid_bet  # устанавливаем сумму последней ставки
             self.game._bank += bet_bet  # прибавить бет в банк
-            # bank = round(bank, 2)
             self.bet_call = bet_bet  # колл теперь равен бету
-            self.bet_min_raise = bet_bet * 2
-            self.is_bet_postflop = True
+            self.bet_min_raise = bet_bet * 2  # минимальный рейз
+            self.is_bet_postflop = True  # метка бета на постфлопе
             self.count_bet = 1  # счетчик ставок = 1
-            self.remove_bet_check_and_bet(self.game.players_in_game)
+            self.remove_bet_check_and_bet(self.game.players_in_game)  # удаляем чек и бэт из списка
 
             return
 
         elif bet in self.word_fold:  # если ставка фолд выйти из функции
-            # remove_player(player, players)
-            player.bet_fold = True
-            player.drop()
+            player.bet_fold = True  # метка сброса на игрока
+            player.drop()  # сброс карт
             self.count_bet += 1
             self.count_fold += 1
             # self.remove_bet_check_and_bet(self.game.players_in_game)
@@ -184,10 +172,11 @@ class Bet:
 
 
     def bet_raise(self) -> float:
+        """Обработка рейза"""
         while True:
             # bet_raise = input("Введите сумму:\n")
             try:
-                bet_raise = float(input("Введите сумму:\n"))
+                bet_raise = float(input(f"Введите сумму. Минимум {self.bet_min_raise}\n"))
                 if ((not self.game.is_table_flop and (bet_raise < self.bet_min_raise)) or
                         (self.game.is_table_flop and self.is_bet_postflop and (bet_raise < self.bet_min_raise))):
                     print(f"Минимальная сумма {self.bet_min_raise}")
@@ -208,7 +197,7 @@ class Bet:
         while True:
             # bet_bet = input("Введите сумму:\n")
             try:
-                bet_bet = float(input("Введите сумму:\n"))
+                bet_bet = float(input(f"Введите сумму. Минимум {self.bet_blind}\n"))
                 if bet_bet < self.big_blind:
                     print(f"Минимальная сумма {self.bet_blind}")
                 else:

@@ -1,19 +1,19 @@
 from .hand import Hand
-from .combination import *
+# from .combination import *
 
 
 class Player:
     def __init__(self, name: str):
-        self.name = name
+        self.name: str = name
         self.stack: int | float = float(1000)
-        self.dealer = False
-        self.sb = False
-        self.bb = False
+        self.dealer: bool = False
+        self.sb: bool = False
+        self.bb: bool = False
         self.hand: Hand = Hand()
-        self.combination = None
-        self.bet_fold = False
-        self.last_bet_amount = 0
-        self.list_bet = []
+        # self.combination RoyalFlush | StraightFlush | FourOfKind | FullHouse | Flush | StraightFlush |  = None
+        self.bet_fold: bool = False
+        self.last_bet_amount: int | float = 0
+        self.list_bet: list = []
 
     def __str__(self):
         output = f'{self.name}: {self.hand} | Стэк={self.stack}'
@@ -41,15 +41,18 @@ class Player:
     #     return self.combination.high_card
 
     def drop(self):
+        """Сброс карт"""
         self.hand.drop()
         self.combination = None
 
     def bet(self, bet_size: int | float):
+        """Ставка"""
         self.stack -= bet_size
         self.last_bet_amount = bet_size
         return bet_size
 
     def bet_increase(self, bet_size):
+        """Увеличение ставки"""
         self.stack += self.last_bet_amount
         self.stack -= bet_size
         self.last_bet_amount = bet_size
