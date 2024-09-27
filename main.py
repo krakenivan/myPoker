@@ -1,10 +1,16 @@
 from classes import Deck, Player, Hand, Table, Game, Card
 
+# TODO разработать базу данных
 ivan = Player('Иван')
+ivan.stack = 1500
 bob = Player('Боб')
 jon = Player('Джон')
+# jon.stack = 0
 maks = Player('Макс')
+maks.stack = 500
+maks.copy_stack = 500
 kris = Player('Крис')
+kris.stack = 1500
 alex = Player('Алекс')
 danila = Player('Данила')
 gans = Player('Ганс')
@@ -19,6 +25,7 @@ table.join(jon)
 table.join(maks)
 table.join(kris)
 table.join(alex)
+table.join(danila)
 print()
 table.new_game()
 
