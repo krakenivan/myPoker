@@ -31,6 +31,7 @@ class Game:
         self.set_blind()  # установка блайндов
         print()
         for round_bet in (self.preflop, self.flop, self.turn_or_river, self.turn_or_river):
+        # for round_bet in (self.preflop, self.flop, self.turn_or_river, self.turn_or_river2):
             winner: list[Player] = round_bet()
             # self.show_players()
             if winner:
@@ -47,25 +48,22 @@ class Game:
         :return: возможный победитель
         """
         self.bet.bet_blind()  # выставление блайндов
-        # self.add_bet()  # добавление возможных ставок
+        self.add_bet()  # добавление возможных ставок
         self.dealing_cards()  # раздача карт игрокам
-        # self._players[0].hand._hand = [Card('8', '♣'), Card('7', '♠')]
-        # self._players[1].hand._hand = [Card('5', '♦'), Card('8', '♠')]
-        # self._players[2].hand._hand = [Card('3', '♦'), Card('3', '♠')]
-        # self._players[3].hand._hand = [Card('10', '♠'), Card('Q', '♥')]
-        # self._players[4].hand._hand = [Card('A', '♦'), Card('A', '♥')]
-        # self._players[5].hand._hand = [Card('6', '♠'), Card('6', '♣')]
+
+        # self._players[0].hand._hand = [Card('Q', '♦'), Card('J', '♦')]
+        # self._players[1].hand._hand = [Card('8', '♠'), Card('A', '♣')]
+        # self._players[2].hand._hand = [Card('6', '♥'), Card('Q', '♣')]
+        # self._players[3].hand._hand = [Card('K', '♦'), Card('2', '♠')]
+        # self._players[4].hand._hand = [Card('5', '♠'), Card('7', '♦')]
+        # self._players[5].hand._hand = [Card('9', '♣'), Card('5', '♥')]
+
         self._deck.shuffle()  # перемешивание колоды
         # print(self._deck)
+
         # index_player: tuple = tuple(range(len(self.players_in_game)))  # вспомогательный кортеж с индексами игроков
         # next_had: int = 0  # следующая рука
         # count_had: int = 0  # счетчик количества розданных рук
-        #
-        # def dealing(pl: Player):
-        #     """Выдача карт игрокам"""
-        #     for _ in range(2):
-        #         pl.hand += self._deck.deal_card()  # добавление карт в руку
-        #
         # for ind, player in enumerate(self.players_in_game):
         #     if player.sb:  # выявление игрока на малом блайнде (для начала раздачи)
         #         next_had = ind  # переменная следующей руки для раздачи
@@ -78,8 +76,6 @@ class Game:
         #     # размещение в порядке начала ставок на постфлопе (первый малый блайнд)
         #     next_had = index_player[(next_had + 1) % len(index_player)]  # переход к следующе руке
         #     count_had += 1  # увеличение счетчика
-
-
 
         self.show_table()  # показывает стол
         print()
@@ -98,12 +94,14 @@ class Game:
         self._deck.deal_card()  # карта вне игры
         for _ in range(3):  # выставление флопа
             self.board.append(self._deck.deal_card())
-        # self.board.append(Card('9', '♠'))
-        # self.board.append(Card('2', '♣'))
-        # self.board.append(Card('K', '♦'))
+
+        # self.board.append(Card('10', '♥'))
+        # self.board.append(Card('A', '♦'))
+        # self.board.append(Card('K', '♠'))
+
         self.is_table_flop = True  # добавление метки флопа
 
-        # self.add_bet()
+        self.add_bet()
         print()
         self.show_table()
         self.bet_reset(self.blind)  # сброс индикаторов ставки
@@ -121,7 +119,8 @@ class Game:
         """
         self._deck.deal_card()
         self.board.append(self._deck.deal_card())
-        # self.board.append(Card('Q', '♠'))
+
+        # self.board.append(Card('2', '♦'))
 
         self.add_bet()
         print()
@@ -135,12 +134,8 @@ class Game:
             return winner
 
     # def turn_or_river2(self) -> list[Player] | None:
-    #     """
-    #     Запуск события терна или ривера
-    #     :return: возможный победитель
-    #     """
-    #     # self._deck.deal_card()
-    #     self.board.append(Card('5', '♠'))
+    #
+    #     self.board.append(Card('8', '♦'))
     #
     #     self.add_bet()
     #     print()
@@ -268,11 +263,13 @@ class Game:
 
                 winner = [player for player in players if not player.bet_fold]  # проверка победителя
                 if len(winner) == 1:  # Если есть один победитель
+                    self.bet.return_allin_to_stack(winner[0])
                     return winner
+
                 if self.bet.count_bet == len(self._players):  # Если количество ставок равно количеству игроков
                     flag_bet = False  # флаг ставок False
                     break  # остановка цикла
-        if self.bet.is_allin and any(not pl.is_sum_all_in_bank for pl in players if pl.is_allin):
+        if any(not pl.is_sum_all_in_bank for pl in players if pl.is_allin) or self.bet.is_trans_bank:
             self.bet.bank_recalculation(players)
         # print("Банк", self._bank)
 
@@ -282,7 +279,9 @@ class Game:
         for player in self._players:
             if player:
                 player.last_bet_amount = 0  # обнуление максимальной ставки игрока
-                player.make_copy_stack(player.stack)
+                player.make_copy_stack()
+        if self.bet.count_call > 1:
+            self.bet.is_allin = False
         if self.bet.is_allin:
             self.bet.all_counter = (self.bet.count_fold + self.bet.count_allin +
                                     self.bet.count_check + self.bet.count_raise)
@@ -300,6 +299,7 @@ class Game:
         self.bet.count_check = 0
         self.bet.count_raise = 0
         self.bet.count_call = 0
+        self. bet.count_over_all_in = 0
         self.bet.is_bet_postflop = False  # индикатор постфлопа
         # self.bet.side_bank = 0  # побочный банк для ол-инов
         self.bet.allin_in_bank = False  # флаг зачисления ол-инов в банк
@@ -330,6 +330,7 @@ class Game:
     def side_bank_division(self, players) -> list:
         """разделение побочного банка"""
         top_winner_allin = []
+
         count_all_in = len(players)  # количество ол_инов
         while self.bet.side_bank > 0:  # цикл пока побочный банк не опустеет для разделения банка
             winner_allin = self.showdown(players)  # определяем победителя
@@ -349,16 +350,22 @@ class Game:
                                                  / len(winner_allin))
                         self.bet.side_bank -= win.player_allin_bank
                         top_winner_allin.append(win)
-                        players.remove(win)
+                        for index, element in enumerate(players):
+                            if element is win:
+                                del players[index]
                         # top_winner_allin = winner_allin  # победители из ол-ина
                     # self.bet.side_bank = 0
                     continue
                 else:  # если победитель один
-                    # winner_allin[0].player_allin_bank = winner_allin[0].actual_allin * len(self.players_in_game)
-                    # формируем потенциальный выиграш
-                    self.bet.side_bank -= winner_allin[0].player_allin_bank
-                    top_winner_allin.append(winner_allin[0])
-                    players.remove(winner_allin[0])
+                    win = winner_allin[0]
+                    self.bet.side_bank -= win.player_allin_bank
+                    top_winner_allin.append(win)
+
+                    for index, element in enumerate(players):
+                        if element is win:
+                            del players[index]
+                            break
+                    # удаляем победителя для дальнейшего разделения банка
                     continue
             else:  # ели сумма ол_ина победителя из ол-инов не равна максимальному ол_ину
                 if len(winner_allin) > 1:  # если победителей несколько
@@ -368,15 +375,19 @@ class Game:
                         self.bet.side_bank -= win.player_allin_bank
                         # вычитаем потенциальные выиграши из побочного банка
                         top_winner_allin.append(win)
-                        players.remove(win)  # удаляем победителей для дальнейшего разделения банка
+                        for index, element in enumerate(players):
+                            if element is win:
+                                del players[index]  # удаляем победителей для дальнейшего разделения банка
                     continue
                 else:  # если победитель один
-                    # winner_allin[0].player_allin_bank = winner_allin[0].actual_allin * len(self.players_in_game)
-                    # формируем потенциальный выиграш
-                    self.bet.side_bank -= winner_allin[0].player_allin_bank
-                    top_winner_allin.append(winner_allin[0])
-                    # вычитаем потенциальный выиграш из побочного банка
-                    players.remove(winner_allin[0])
+                    win = winner_allin[0]
+                    self.bet.side_bank -= win.player_allin_bank
+                    top_winner_allin.append(win)
+
+                    for index, element in enumerate(players):
+                        if element is win:
+                            del players[index]
+                            break
                     # удаляем победителя для дальнейшего разделения банка
                     continue
         return top_winner_allin

@@ -32,8 +32,8 @@ class Player:
             output += ' SB'
         if self.bb:
             output += ' BB'
-        # if self.list_bet:
-        #     output += f'\nДоступные ставки: {self.list_bet}'
+        if self.list_bet:
+            output += f'\nДоступные ставки: {self.list_bet}'
         return output
 
     def __repr__(self):
@@ -76,7 +76,7 @@ class Player:
         self.stack = 0
         return self.sum_allin
 
-    def make_copy_stack(self, stack):
+    def make_copy_stack(self):
         self.copy_stack = self.stack
 
     def __eq__(self, other):

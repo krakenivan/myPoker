@@ -48,7 +48,7 @@ class Table:
                 player.bb = False
                 player.bet_fold = False
                 player.is_allin = False
-                player.make_copy_stack(player.stack)
+                player.make_copy_stack()
                 player.sum_allin = 0
                 player.player_allin_bank = 0
                 player.is_sum_all_in_bank = False
@@ -63,7 +63,7 @@ class Table:
             quest.bb = False
             quest.bet_fold = False
             quest.is_allin = False
-            quest.make_copy_stack(quest.stack)
+            quest.make_copy_stack()
             quest.sum_allin = 0
             quest.player_allin_bank = 0
             quest.is_sum_all_in_bank = False
@@ -81,9 +81,6 @@ class Table:
                 self.players[ind] = None
                 self.guests.append(player)
 
-
-
-
     def change_dealer(self):
         """Передвижение метки диллера"""
         players = [player for player in self.players if player]
@@ -99,14 +96,17 @@ class Table:
                     players[self.ind_dealer].dealer = True
                     break
 
-
-
     def crediting_winnings(self, winning_players):
         """Начисление выиграша"""
+        print('Банк', self._game._bank)
         if any([player.is_allin for player in winning_players]):  # если в победителях есть игроки ол_ин
             if len(winning_players) == 1:
                 for player in winning_players:  # обходим список победителей
                     print("Игрок олин", player.player_allin_bank)
+                    if not self._game.not_allin_player:
+                        player.stack += self._game._bank  # забираем в стек весь банк
+                        self._game._bank = 0  # обнуляем банк
+                        return
                     # if self._game.not_allin_player:  # если есть игроки без ол ина
                     player.stack += player.player_allin_bank + player.player_another_bank_all_in
                     # добавляем в стек победителю только потенциальный выиграш
@@ -116,11 +116,11 @@ class Table:
                     #     player.stack += self._game._bank  # забираем в стек весь банк
                     #     self._game._bank = 0  # обнуляем банк
 
-                    print("Остаток банка", self._game._bank)
-                if self._game._bank:  # если в банке есть остаток
-                    player_win_not_allin = max(self._game.not_allin_player)
-                    # выявляем игрока без ол_ина с самой сильной комбинацией
-                    player_win_not_allin.stack += self._game._bank  # отдаем ему остаток в банке
+                #     print("Остаток банка", self._game._bank)
+                # if self._game._bank:  # если в банке есть остаток
+                #     player_win_not_allin = max(self._game.not_allin_player)
+                #     # выявляем игрока без ол_ина с самой сильной комбинацией
+                #     player_win_not_allin.stack += self._game._bank  # отдаем ему остаток в банке
                     # quantity_winner_not_allin = len(self._game.not_allin_player)
                     # for player in player_win_not_allin:
                     #     player.stack += (self._game._bank / quantity_winner_not_allin)
@@ -128,28 +128,64 @@ class Table:
                 #     player_win_not_allin = max(self._game.not_allin_player)
                 #     player_win_not_allin.stack += player_win_not_allin
             else:
-                another_bank_winer = sum((pl.player_another_bank_all_in for pl in winning_players))
-                sorted_win_player = sorted([pl for pl in winning_players], key=lambda x: x.player_another_bank_all_in)
-                while another_bank_winer != 0:
-                    for player in sorted_win_player:
+                if not self._game.not_allin_player:
+                    for player in winning_players:  # обходим список победителей
+                        player.stack += self._game._bank / len(winning_players)  # забираем в стек весь банк
+                    self._game._bank = 0
+                    return
+
+                top_win = max(winning_players)
+                if all([player != top_win for player in winning_players]):
+                    for player in winning_players:
                         player.stack += (player.player_allin_bank + player.player_another_bank_all_in
                                          / len(winning_players))
                         self._game._bank -= (player.player_allin_bank + player.player_another_bank_all_in
                                              / len(winning_players))
-                        another_bank_winer -= player.player_another_bank_all_in / len(winning_players)
-                    min_another_bank = min([pl.player_another_bank_all_in for pl in winning_players])
-                    for player in sorted_win_player:
-                        if player.player_another_bank_all_in == min_another_bank:
-                            sorted_win_player.remove(player)
-                if self._game._bank:  # если в банке есть остаток
-                    player_win_not_allin = max(self._game.not_allin_player)
-                    # выявляем игрока без ол_ина с самой сильной комбинацией
-                    player_win_not_allin.stack += self._game._bank
+
+                else:
+                    # another_bank_winer = sum((pl.player_another_bank_all_in for pl in winning_players))
+                    # sorted_win_player = sorted([pl for pl in winning_players],
+                    #                            key=lambda x: x.player_another_bank_all_in)
+                    # while another_bank_winer != 0:
+                    flag = True
+                    while self._game._bank != 0 and flag:
+                        for player in sorted(winning_players, reverse=True):
+                            winnings = player.player_allin_bank + player.player_another_bank_all_in
+                            if self._game._bank >= winnings:
+                                player.stack += winnings
+                                self._game._bank -= winnings
+                                continue
+                            else:
+                                player.stack += self._game._bank
+                                self._game._bank = 0
+                                break
+                        else:
+                            flag = False
+
+                    #
+                    #     another_bank_winer -= player.player_another_bank_all_in / len(winning_players)
+                    # min_another_bank = min([pl.player_another_bank_all_in for pl in winning_players])
+                    # for player in sorted_win_player:
+                    #     if player.player_another_bank_all_in == min_another_bank:
+                    #         sorted_win_player.remove(player)
+            print("Остаток банка", self._game._bank)
+
+            if self._game._bank:  # если в банке есть остаток
+                player_win_not_allin = max(self._game.not_allin_player)
+                # выявляем игрока без ол_ина с самой сильной комбинацией
+                count_win_not_allin = sum(pl == player_win_not_allin for pl in self._game.not_allin_player)
+                if count_win_not_allin == 1:
+                    player_win_not_allin.stack += self._game._bank + self._game.bet.over_allin_bank
+                    self._game._bank = 0
+                else:
+                    player_win_not_allin.stack += ((self._game._bank + self._game.bet.over_allin_bank)
+                                                   / count_win_not_allin)
+                    self._game._bank = 0
 
         else:  # если игроков с ол_ином нет в победителях
             quantity_winner = len(winning_players)  # количество победителей
             for player in winning_players:  # делим банк на всех победителей
-                player.stack += (self._game._bank/quantity_winner)
+                player.stack += ((self._game._bank + self._game.bet.over_allin_bank) / quantity_winner)
 
     def new_game(self):
         """Запуск игры"""

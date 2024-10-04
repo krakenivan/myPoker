@@ -11,7 +11,7 @@ class Betting:
         self.bet_min_raise: float = self.bet_call * 2  # размер минимального рейза
         self.is_raise = False  # индикатор рейза
         self.is_allin = False  # индикатор ол-ина
-        self.min_allin = 0  # минимальный ол-ин
+        self.min_allin = self.big_blind  # минимальный ол-ин
         self.max_allin = 0  # максимальный ол-ин
         self.word_allin = ['all-in', 'allin', 'all', 'ол-ин', 'олин', 'на все', 'все']  # слова для ставки ол-ин
         self.word_check = ['check', 'chek', 'chec', 'чек', 'чэк']  # слова для ставки чек
@@ -34,32 +34,34 @@ class Betting:
         self.count_check = 0  # счетчик чеков
         self.count_call = 0  # счетчик колов
         self.count_raise = 0  # счетчик рейзов
+        self.count_over_all_in = 0
         self.all_counter = 0  # общий вспомогательный счетчик
         self.is_bet_postflop = False  # был ли бэт
         self.side_bank = 0  # побочный банк для ол-инов
         self.allin_in_bank = False  # флаг зачисления ол-инов в банк
-        self.save_max_allin = 0
+        self.save_max_allin = 0  # сохранение максимального ол-ина
         self.another_bank_all_in = 0  # побочный банк вне ол-ина
-        # self.is_another_bank_in_side_bank = False
-        self.is_trans_bank = False
+        self.is_trans_bank = False  # флаг зачисления ставок в банк
+        self.over_allin_bank = 0
 
     def bet_blind(self):
         """Выставление блайндов"""
         for player in self.game.players_in_game:
             if player:
                 if player.sb:
-                    if player.stack < self.small_blind:
+                    if player.stack < self.small_blind:  # если в стеке не хватает фишек идет ол-ин
+                        print('Недостаточно фишек для ставки')
                         self.all_in(player)
                     else:
                         self.game._bank += player.bet(self.small_blind)
                         self.another_bank_all_in += self.small_blind
                 if player.bb:
-                    if player.stack < self.big_blind:
+                    if player.stack < self.big_blind:  # если в стеке не хватает фишек идет ол-ин
+                        print('Недостаточно фишек для ставки')
                         self.all_in(player)
                     else:
                         self.game._bank += player.bet(self.big_blind)
                         self.another_bank_all_in += self.big_blind
-        # self.side_bank += self.another_bank_all_in
 
     def bet_preflop(self, player: Player):
         """Запрос ставок на префлопе
@@ -139,31 +141,42 @@ class Betting:
         if (((not self.game.is_table_flop) and (bet[0] in self.word_rais)) or
                 (self.game.is_table_flop and self.is_bet_postflop and (bet[0] in self.word_rais))):
             # если ставка рейз и флопа не было или если ставка рейз после флопа при наличие бета
-            if self.is_allin and player.stack < self.max_allin:
+            if self.is_allin and player.copy_stack < self.max_allin:
+                print('Недостаточно фишек для ставки')
+                self.another_bank_all_in -= player.last_bet_amount
+                self.all_in(player)
+                return
+            if player.copy_stack < self.bet_min_raise:
+                print('Недостаточно фишек для ставки')
+                self.another_bank_all_in -= player.last_bet_amount
                 self.all_in(player)
                 return
             bet_raise = self.bet_raise(bet)  # вызов функции рейза и сохранить в переменную сумму ставки
-            if self.is_allin:
-                if bet_raise > self.max_allin:
-                    player.another_bank_over_all_in += bet_raise - self.max_allin
-                    bet_raise -= self.max_allin
-            # else:
-            #     self.another_bank_all_in += self.bet_call
-
+            self.bet_call = bet_raise  # колл теперь равен рейзу
+            self.bet_min_raise = bet_raise * 2  # установка минимального рейза
+            if bet_raise > self.min_allin:
+                player.another_bank_over_all_in += bet_raise - self.min_allin
+                bet_raise -= player.another_bank_over_all_in
+                self.min_allin += player.another_bank_over_all_in
+                self.count_over_all_in = 1
+                self.is_trans_bank = True
+            # if self.is_allin:
+            #     if bet_raise > self.min_allin:
+            #         player.another_bank_over_all_in += bet_raise - self.min_allin
+            #         bet_raise -= self.min_allin
+            # self.another_bank_all_in += bet_raise - player.last_bet_amount
             if player.last_bet_amount != 0:  # если ставка у игрока уже была
                 self.game._bank -= player.last_bet_amount
+                self.another_bank_all_in -= player.last_bet_amount
                 player.bet_increase(bet_raise)  # повышение
                 self.game._bank += bet_raise  # добавление в банк
             else:
-                # player.bid(bid_raise)
                 self.game._bank += player.bet(bet_raise)  # иначе ставка
-            if not self.is_allin:
-                self.another_bank_all_in += bet_raise
-            # elif self.is_allin:
-            #     self.another_bank_all_in -= bet_raise
+            # if not self.is_allin:
+            # self.another_bank_all_in += bet_raise - player.last_bet_amount
 
-            self.bet_call = bet_raise  # колл теперь равен рейзу
-            self.bet_min_raise = bet_raise * 2  # установка минимального рейза
+            # self.bet_call = bet_raise  # колл теперь равен рейзу
+            # self.bet_min_raise = bet_raise * 2  # установка минимального рейза
             self.is_raise = True  # метка рейза
             self.count_bet = 1 + self.count_fold + self.count_allin   # счетчик ставок = 1 + количество сбросов
             self.count_raise += 1
@@ -172,13 +185,11 @@ class Betting:
             return
 
         elif bet[0] in self.word_call:  # если ставка колл
-            if self.is_allin and player.stack <= self.max_allin:
+            if player.copy_stack <= self.min_allin:
+                print('Недостаточно фишек для ставки')
                 self.another_bank_all_in -= player.last_bet_amount
                 self.all_in(player)
-                # self.is_trans_bank = True
                 return
-            # if self.is_allin and player.stack > self.max_allin and self.another_bank:
-            #     self.another_bank += self.max_allin - self.bet_call
             if len(bet) > 1:
                 print('Кол в данный момент равен', self.bet_call)
 
@@ -188,31 +199,31 @@ class Betting:
                 if self.is_trans_bank:
                     player.another_bank_over_all_in = 0
                 if self.is_raise:
+                    self.another_bank_all_in += player.last_bet_amount
                     self.is_trans_bank = True
-            else:
-                self.another_bank_all_in += self.bet_call - player.last_bet_amount
-
+                    player.another_bank_over_all_in = 0
+            # self.another_bank_all_in += self.bet_call - player.last_bet_amount
 
             if player.last_bet_amount != 0:  # если ставка у игрока уже была
+                self.another_bank_all_in -= player.last_bet_amount
                 self.game._bank -= player.last_bet_amount
                 player.bet_increase(self.bet_call)
+                self.another_bank_all_in += player.last_bet_amount
                 self.game._bank += self.bet_call
             else:
                 player.bet(self.bet_call)
-                self.game._bank += self.bet_call
+                self.another_bank_all_in += player.last_bet_amount
 
-            # if not self.is_allin:
-            #     self.another_bank_all_in += self.bet_call
-            # elif self.is_allin and self.is_raise:
-            #     self.another_bank_over_all_in += self.bet_call - self.max_allin
-            # elif self.is_allin:
-            #     self.another_bank_all_in -= self.bet_call
+                self.game._bank += self.bet_call
+            if self.bet_call == self.min_allin:
+                self.count_over_all_in += 1
 
             self.count_bet += 1  # счетчик ставок увеличить на 1
             self.count_call += 1
             return
 
         elif bet[0] in self.word_allin:
+            self.another_bank_all_in -= player.last_bet_amount
             # если ставка ол-ин
             self.all_in(player)
             return
@@ -222,7 +233,8 @@ class Betting:
             if bet[0] in self.word_rais:  # если рейз
                 print(f'Ваш {bet[0]} приравнивается к бэту. Минимальная сумма бэта {self.big_blind}')
             bet_bet = self.bet_bet(bet)  # вызов функции бета и сохранить в переменную сумму ставки
-            if bet_bet > player.stack:
+            if bet_bet > player.copy_stack:
+                print('Недостаточно фишек для ставки')
                 self.all_in(player)
                 return
             player.bet(bet_bet)
@@ -240,6 +252,8 @@ class Betting:
             player.drop()  # сброс карт
             self.count_bet += 1
             self.count_fold += 1
+            if self.is_allin:
+                self.another_bank_all_in += player.last_bet_amount
             # self.remove_bet_check_and_bet(self.game.players_in_game)
             print("Вы скинули карты")
             return
@@ -275,83 +289,97 @@ class Betting:
         if bet_allin > self.max_allin:
             self.max_allin = bet_allin
             self.save_max_allin = player.actual_allin
-        if self.is_allin:
-            if self.min_allin > bet_allin:
-                self.min_allin = bet_allin
+        # if self.is_allin:
+        #     if self.min_allin > bet_allin:
+        #         self.min_allin = bet_allin
         if not self.is_allin:
             self.is_allin = True
             self.min_allin = bet_allin
 
-        self.bet_call = self.max_allin  # колл теперь равен ол-ину
+        if self.min_allin < bet_allin:
+            self.min_allin = bet_allin
+
+        if self.bet_call < self.max_allin:
+            self.bet_call = self.max_allin  # колл теперь равен ол-ину
         self.bet_min_raise = self.bet_call * 2
         if self.game.is_table_flop:
             self.is_bet_postflop = True  # метка бета на постфлопе
+        # if bet_allin < self.min_allin:
+        #     self.count_allin += self.count_over_all_in
         self.count_bet = 1 + self.count_fold + self.count_allin  # счетчик ставок = 1 + количество сбросов
         self.count_allin += 1
+        if bet_allin <= self.min_allin:
+            self.count_bet += self.count_over_all_in
         self.remove_bet_check_and_bet(self.game.players_in_game)
-        print('ОЛ_ИН', bet_allin)
+        print('ОЛ-ИН', bet_allin)
 
     def bank_recalculation(self, players):
         """Перерасчет банка игроков в зависимости от ол-ина"""
-        new_bank = 0
+        # new_bank = 0
         players_not_fold = [player for player in players if not player.bet_fold]
-        count_player_is_allin_outside_side_bank = len([pl for pl in players_not_fold if not pl.is_sum_all_in_bank])
+        # count_player_is_allin_outside_side_bank = len([pl for pl in players_not_fold if not pl.is_sum_all_in_bank])
+
         if self.is_trans_bank:
             for player in players_not_fold:
                 player.stack -= player.another_bank_over_all_in
+                if not player.is_allin:
+                    player.last_bet_amount += player.another_bank_over_all_in
                 self.game._bank += player.another_bank_over_all_in
                 player.another_bank_over_all_in = 0
-                if player.last_bet_amount > self.max_allin:
-                    surplus = player.last_bet_amount - self.max_allin
+                if player.last_bet_amount > self.min_allin:
+                    surplus = player.last_bet_amount - self.min_allin
                     player.stack += surplus  # возврат излишка в стек
                     self.another_bank_all_in -= surplus
-                    player.last_bet_amount = self.max_allin  # перерасчет последней ставки
-        if not self.allin_in_bank:
-            allin_player = [player for player in players_not_fold if player.is_allin and not player.is_sum_all_in_bank]
-            # список игроков с ол_ином
-            # count_all_in = len(allin_player)  # количество игроков с ол-ином
-            list_sum_allin = list(set(pl_alin.sum_allin for pl_alin in allin_player if not pl_alin.is_sum_all_in_bank))
-            sort_sum_allin = sorted(list_sum_allin)
-            # список уникальных сум ставок
-            if len(list_sum_allin) > 1:
-                sum_allin = sort_sum_allin[-2]  # берем предпоследнюю
-                self.max_allin = sum_allin  # ставим последнюю как максимальную
-                for player in allin_player:
-                    if player.sum_allin > self.max_allin:  # если сумма олина у игрока больше максимального
-                        player.stack += player.sum_allin - self.max_allin  # возврат излишка в стек
-                        player.sum_allin = self.max_allin  # перерасчет суммы ол-ина
-                        player.actual_allin = self.max_allin
-            else:
-                sum_allin = sort_sum_allin[0]
+                    player.last_bet_amount = self.min_allin  # перерасчет последней ставки
+        if self.is_allin:
+            new_bank = 0
+            self.over_allin_bank += sum([player.last_bet_amount - self.max_allin
+                                         for player in players_not_fold if not player.is_allin])
+            self.game._bank -= self.over_allin_bank
 
-                        # if count_all_in > 1:  # если ол-инов больше 1
-            for pl in allin_player:
-                if not pl.is_sum_all_in_bank:
-                    pl.player_allin_bank += (pl.actual_allin * len(players_not_fold))
-                    # self.side_bank += sum_allin
-                    # self.side_bank += sum_allin * count_player_is_allin_outside_side_bank
-                    pl.player_another_bank_all_in += self.another_bank_all_in
-                    # self.side_bank += self.another_bank_all_in
-                    # self.is_another_bank_in_side_bank = True
-                    # добавляем их суммы в побочный банк
-                    new_bank += pl.sum_allin
-                    pl.is_sum_all_in_bank = True
-            self.side_bank += sum_allin * count_player_is_allin_outside_side_bank
-            self.game._bank += new_bank  # кладем побочный банк в общий банк
-            # if count_all_in == 1:  # если ол-ин один
-            #     for pl in allin_player:
-            #         if not pl.is_sum_all_in_bank:
-            #             pl.player_allin_bank += pl.actual_allin * len(players_not_fold)
-            #             # формируем потенциальный выиграш игрока
-            #             self.side_bank += pl.sum_allin * count_player_is_allin_outside_side_bank
-            #             # кладем его ол_ин в банк
-            #             new_bank += pl.sum_allin
-            #             pl.is_sum_all_in_bank = True
-            #     self.game._bank += new_bank  # кладем побочный банк в общий банк
-            self.allin_in_bank = True
-            # if self.another_bank:
-            #     setattr(self.game, 'another_bank', self.another_bank)
+            if not self.allin_in_bank:
+                allin_player = [player for player in players_not_fold if player.is_allin and not player.is_sum_all_in_bank]
+                # список игроков с ол_ином
+                # count_all_in = len(allin_player)  # количество игроков с ол-ином
+                list_sum_allin = list(set(pl_alin.sum_allin for pl_alin in allin_player if not pl_alin.is_sum_all_in_bank))
+                sort_sum_allin = sorted(list_sum_allin)
+                # список уникальных сум ставок
+                if len(list_sum_allin) > 1:
+                    sum_allin = sort_sum_allin[-2]  # берем предпоследнюю
+                    if self.min_allin < self.max_allin:
+                        self.max_allin = sum_allin  # ставим последнюю как максимальную
+                    self.save_max_allin = self.max_allin
+                    for player in allin_player:
+                        if player.sum_allin > self.max_allin:  # если сумма олина у игрока больше максимального
+                            player.stack += player.sum_allin - self.max_allin  # возврат излишка в стек
+                            player.sum_allin = self.max_allin  # перерасчет суммы ол-ина
+                            player.actual_allin = self.max_allin
+                # else:
+                #     sum_allin = sort_sum_allin[0]
 
+                            # if count_all_in > 1:  # если ол-инов больше 1
+                for pl in allin_player:
+                    if not pl.is_sum_all_in_bank:
+                        if pl.actual_allin == self.max_allin:
+                        # pl.player_allin_bank += (pl.actual_allin * len(players_not_fold))
+                            pl.player_allin_bank += sum([player.actual_allin for player in players])
+                        else:
+                            pl.player_allin_bank += (pl.actual_allin * len(players_not_fold))
+                        # self.side_bank += sum_allin
+                        # self.side_bank += sum_allin * count_player_is_allin_outside_side_bank
+
+                        pl.player_another_bank_all_in += self.another_bank_all_in
+                        if self.another_bank_all_in > pl.actual_allin:
+                            pl.player_another_bank_all_in -= (self.another_bank_all_in - pl.actual_allin)
+                        # self.side_bank += self.another_bank_all_in
+                        # self.is_another_bank_in_side_bank = True
+                        # добавляем их суммы в побочный банк
+                        new_bank += pl.sum_allin
+                        pl.is_sum_all_in_bank = True
+                # self.side_bank += sum_allin * count_player_is_allin_outside_side_bank
+                self.side_bank += sum([player.actual_allin for player in players])
+                self.game._bank += new_bank  # кладем побочный банк в общий банк
+                self.allin_in_bank = True
 
     def bet_bet(self, bet) -> float:
         """
@@ -377,8 +405,19 @@ class Betting:
                 print(f"Ставка {bet_bet} принята")
                 return bet_bet
 
+    def return_allin_to_stack(self, player):
+        """Возвращает ставку последнего игрока в стек"""
+        if player.is_allin:
+            player.stack += player.actual_allin
+            player.is_allin = False
+        else:
+            player.stack += player.last_bet_amount
+            self.game._bank -= player.last_bet_amount
+
     def remove_bet_check_and_bet(self, players):
         for player in players:
+            if player.stack < self.bet_min_raise and 'рейз' in player.list_bet:
+                player.list_bet.remove('рейз')
             if "чек" in player.list_bet:
                 player.list_bet.remove("чек")
             if "бэт" in player.list_bet:
